@@ -339,9 +339,9 @@ fn create_sv_file(info: &Info) -> String {
 
 `default_nettype none
 
-module {}(
+module {} (
   input logic clk,
-  input logic rst,
+  input logic rst
   );
 
   // TODO - Implementation
