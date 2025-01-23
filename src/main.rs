@@ -24,6 +24,8 @@ enum FileTypes {
     CPP,
     HPP,
     Bash,
+    SystemVerilogModule,
+    SystemVerilogPackage,
 }
 
 #[derive(Debug)]
@@ -77,6 +79,16 @@ fn create_file(filename: &str, filetype: FileTypes) -> Result<(), Box<dyn Error>
             perms.set_mode(0o744);
             fs::set_permissions(&info.file, perms)?;
         }
+        FileTypes::SystemVerilogModule => {
+            let filename_string = format!("{filename}.sv");
+            info.file = filename_string;
+            fs::write(&info.file, create_sv_file(&info))?;
+        }
+        FileTypes::SystemVerilogPackage => {
+            let filename_string = format!("{filename}.svh");
+            info.file = filename_string;
+            fs::write(&info.file, create_svh_file(&info))?;
+        }
     }
 
     Ok(())
@@ -94,13 +106,49 @@ fn check_input_errs(input: &Vec<&str>) -> Result<(), String> {
 }
 
 fn show_supported_filetypes() {
-    println!("Supported filetypes:");
-    println!("  {}      : '{}'", "C".red(), ".c".green());
-    println!("  {}      : '{}'", "H".red(), ".h".green());
-    println!("  {} : '{}'", "Python".red(), ".py".green());
-    println!("  {}    : '{}'", "CPP".red(), ".cpp".green());
-    println!("  {}    : '{}'", "HPP".red(), ".hpp".green());
-    println!("  {}   : '{}'", "Bash".red(), ".bash".green());
+    println!("{}", "Software Filetypes:".bright_cyan().bold().underline());
+    println!(
+        "  {}      : '{}'",
+        "C".bright_cyan().bold(),
+        ".c".bright_green().bold()
+    );
+    println!(
+        "  {}      : '{}'",
+        "H".bright_cyan().bold(),
+        ".h".bright_green().bold()
+    );
+    println!(
+        "  {} : '{}'",
+        "Python".bright_cyan().bold(),
+        ".py".bright_green().bold()
+    );
+    println!(
+        "  {}    : '{}'",
+        "CPP".bright_cyan().bold(),
+        ".cpp".bright_green().bold()
+    );
+    println!(
+        "  {}    : '{}'",
+        "HPP".bright_cyan().bold(),
+        ".hpp".bright_green().bold()
+    );
+    println!(
+        "  {}   : '{}'",
+        "Bash".bright_cyan().bold(),
+        ".bash".bright_green().bold()
+    );
+    println!("");
+    println!("{}", "HDL Filetypes:".bright_cyan().bold().underline());
+    println!(
+        "  {}  : '{}'",
+        "SystemVerilog (module)".bright_cyan().bold(),
+        ".sv".bright_green().bold()
+    );
+    println!(
+        "  {} : '{}'",
+        "SystemVerilog (package)".bright_cyan().bold(),
+        ".svh".bright_green().bold()
+    );
     process::exit(0)
 }
 
@@ -133,6 +181,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         Some(&"cpp") => FileTypes::CPP,
         Some(&"hpp") => FileTypes::HPP,
         Some(&"bash") => FileTypes::Bash,
+        Some(&"sv") => FileTypes::SystemVerilogModule,
+        Some(&"svh") => FileTypes::SystemVerilogPackage,
         Some(&unsupported_filetype) => {
             eprintln!("{}: Filetype '.{unsupported_filetype}' is not supported. Run 'tf --list-filetypes' for available filetypes.", "ERROR".red());
             process::exit(1)
@@ -273,5 +323,69 @@ set -x # enable tracing
 echo \"Hello, World!\"
 ",
         info.author, info.file, info.date,
+    ))
+}
+
+fn create_sv_file(info: &Info) -> String {
+    let module_name: Vec<&str> = info.file.split(".").collect();
+
+    String::from(format!(
+        "////////////////////////////////////////////////////////////////////////
+// Author  : {}
+// File    : {}
+// Date    : {}
+// Purpose : TODO
+////////////////////////////////////////////////////////////////////////
+
+`default_nettype none
+
+module {}(
+  input logic clk,
+  input logic rst,
+  );
+
+  // TODO - Implementation
+
+endmodule
+
+`default_nettype wire
+
+",
+        info.author, info.file, info.date, module_name[0]
+    ))
+}
+
+fn create_svh_file(info: &Info) -> String {
+    let package_name: Vec<&str> = info.file.split(".").collect();
+    let package_name_no_file_ext = package_name[0];
+    let header_guard = package_name_no_file_ext.to_uppercase();
+
+    String::from(format!(
+        "////////////////////////////////////////////////////////////////////////
+// Author  : {}
+// File    : {}
+// Date    : {}
+// Purpose : TODO
+////////////////////////////////////////////////////////////////////////
+
+`ifndef {}
+`define {}
+
+package {};
+
+  // TODO - Implementation
+
+endpackage: {}
+
+`endif
+
+",
+        info.author,
+        info.file,
+        info.date,
+        header_guard,
+        header_guard,
+        package_name_no_file_ext,
+        package_name_no_file_ext
     ))
 }
